@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to PDF Converter</title>
+    
+    <link rel="stylesheet" href="pdf.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+    <nav>
+        <a href="index.html" class="nav-link">&larr; Back to Home</a>
+    </nav>
+
+    <main>
+        <h2>Image to PDF Converter</h2>
+        <p>Select multiple images to combine them into a single PDF.</p>
+
+        <label for="file-input" class="file-label">Choose Images</label>
+        <input type="file" id="file-input" accept="image/*" multiple />
+        
+        <span id="file-name">No files selected</span>
+        
+        <button id="upload-button">Convert to PDF</button>
+        
+        <p id="status" class="status-info"></p>
+    </main>
+
+    <script src="pdf.js"></script>
+</body>
+</html>
