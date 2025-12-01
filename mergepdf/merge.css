@@ -1,0 +1,91 @@
+/* Reuse core structure but with PURPLE theme */
+:root {
+    --primary: #6f42c1; /* Purple */
+    --success: #28a745;
+    --bg: #f3f0ff;      /* Light purple tint */
+    --dark-grey: #333;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    margin: 0;
+}
+
+nav {
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: #666;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.nav-link:hover { color: var(--primary); }
+
+main {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    border-top: 6px solid var(--primary);
+}
+
+h2 { margin-top: 0; color: var(--dark-grey); }
+
+#file-input { display: none; }
+
+.file-label {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    transition: background 0.2s;
+}
+
+.file-label:hover { background: #5a32a3; }
+
+#file-name {
+    display: block;
+    margin-bottom: 1.5rem;
+    color: #6c757d;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+#action-button {
+    background: var(--dark-grey);
+    color: white;
+    padding: 14px;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+#action-button:active { transform: scale(0.98); }
+
+#status { margin-top: 20px; font-size: 0.9rem; min-height: 1.2em; }
+.status-success { color: var(--success); }
+.status-error { color: #dc3545; }
+.status-info { color: #555; }

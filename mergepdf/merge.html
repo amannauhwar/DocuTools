@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge PDF Files</title>
+    
+    <link rel="stylesheet" href="merge.css">
+
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+</head>
+<body>
+
+    <nav>
+        <a href="../index.html" class="nav-link">&larr; Back to Home</a>
+    </nav>
+
+    <main>
+        <h2>Merge PDF Files</h2>
+        <p>Select multiple PDF files to combine them into one document.</p>
+
+        <label for="file-input" class="file-label">Choose PDFs</label>
+        <input type="file" id="file-input" accept="application/pdf" multiple />
+        
+        <span id="file-name">No files selected</span>
+        
+        <button id="action-button">Merge PDFs</button>
+        
+        <p id="status" class="status-info"></p>
+    </main>
+
+    <script src="merge.js"></script>
+</body>
+</html>
