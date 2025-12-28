@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passport Image Maker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+</head>
+<body>
+    <nav>
+    <a href="../index.html" class="nav-link">&larr; Back to Home</a>
+    </nav>
+    <main>
+        <h2>Click Below On 'Choose File'</h2>
+        <!-- <p>Select a file to upload and download a processed version.</p> -->
+
+        <label for="file-input" accept="image/*" class="file-label">Choose File</label>
+        <input type="file" id="file-input" />
+        
+        <span id="file-name">No file selected</span>
+        
+        <button id="upload-button">Remove Watermark</button>
+        <!-- <button id="download-button">Download</button> -->
+        
+        <p id="status" class="status-info"></p>
+    </main>
+
+<script>
+// === CONFIGURATION ===
+const API_SERVER_URL = "https://7trci5rxq6rjab3falry5xovra0gvumr.lambda-url.eu-north-1.on.aws"; 
+const POLLING_INTERVAL = 2000;
+const MAX_POLLS = 20; 
+// =====================
+
+// --- 1. UI REFERENCES (Must be at the top!) ---
+const mainContainer = document.querySelector('main');
+const fileInput = document.getElementById('file-input');
+const fileLabel = document.querySelector('.file-label');
+const fileNameDisplay = document.getElementById('file-name');
+const statusMessage = document.getElementById('status');
+const originalUploadButton = document.getElementById('upload-button');
+
+// State Tracking
+let currentButton = originalUploadButton;
+let selectedFile = null;
+
+// --- 2. HELPER FUNCTIONS ---
+
+/**
+ * Converts a HEIC file to a JPEG File object.
+ */
+async function convertHeicToJpg(heicFile) {
+    // console.log("Converting HEIC to JPG...");
+    const jpgBlob = await heic2any({
+        blob: heicFile,
+        toType: "image/jpeg",
+        quality: 0.8 
+    });
+    const newName = heicFile.name.replace(/\.heic$/i, ".jpg");
+    return new File([jpgBlob], newName, {
+        type: "image/jpeg",
+        lastModified: new Date().getTime()
+    });
+}
+
+function setStatus(message, type) {
+    statusMessage.textContent = message;
+    statusMessage.className = `status-${type}`;
+}
+
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// --- 3. MAIN FILE LISTENER (Merged) ---
+fileInput.addEventListener('change', async () => {
+    // Reset status
+    setStatus("", "info");
+
+    if (fileInput.files.length > 0) {
+        let rawFile = fileInput.files[0];
+
+        // A. CHECK FOR HEIC (iPhone Format)
+        if (rawFile.name.toLowerCase().endsWith('.heic') || rawFile.type === "image/heic") {
+            // setStatus("Converting iPhone format (HEIC) to JPG...", "info");
+                setStatus("Fetching image...", "info");
+            
+            // Disable button during conversion
+            originalUploadButton.disabled = true;
+            originalUploadButton.style.opacity = "0.5";
+
+            try {
+                // Convert and update selectedFile
+                selectedFile = await convertHeicToJpg(rawFile);
+                setStatus("Fetching complete.", "success");
+            } catch (error) {
+                console.error(error);
+                setStatus("Error: Could not fetch the file.", "error");
+                return;
+            } finally {
+                originalUploadButton.disabled = false;
+                originalUploadButton.style.opacity = "1";
+            }
+        } else {
+            // B. STANDARD IMAGE (JPG/PNG)
+            selectedFile = rawFile;
+        }
+        
+        // C. UPDATE UI TEXT
+        fileNameDisplay.textContent = selectedFile.name;
+        fileLabel.textContent = "Change File";
+
+        // D. RESET BUTTON (If Download button is showing, swap back to Upload)
+        if (currentButton !== originalUploadButton && mainContainer.contains(currentButton)) {
+            mainContainer.replaceChild(originalUploadButton, currentButton);
+            currentButton = originalUploadButton;
+        }
+    }
+});
+
+// --- 4. POLLING LOGIC ---
+async function pollForDownload(fileName) {
+    let polls = MAX_POLLS;
+    while (polls > 0) {
+        try {
+            // Encode the filename to handle spaces safely
+            const safeName = encodeURIComponent(fileName);
+            const response = await fetch(`${API_SERVER_URL}/check-download-url?filename=${safeName}`);
+            
+            if (!response.ok) throw new Error("Polling request failed");
+            const data = await response.json();
+            
+            if (data.status === "ready") return data.download_url;
+            
+            polls--;
+            setStatus(`Processing... (${polls} checks left)`, "info");
+            await wait(POLLING_INTERVAL);
+        } catch (error) {
+            console.error("Polling error:", error);
+            polls--;
+            await wait(POLLING_INTERVAL);
+        }
+    }
+    throw new Error("File processing timed out.");
+}
+
+// --- 5. UPLOAD LOGIC ---
+originalUploadButton.addEventListener('click', async () => {
+    if (!selectedFile) {
+        setStatus("Please select a file first.", "error");
+        return;
+    }
+
+    // setStatus("Starting upload...", "info");
+       setStatus("Processing image...", "info");
+
+    try {
+        // Step 1: Get Upload URL
+        // Use encodeURIComponent to handle spaces in filenames
+        const safeName = encodeURIComponent(selectedFile.name);
+        // Default to image/jpeg if type is missing (common after conversion)
+        const fileType = selectedFile.type || 'image/jpeg';
+
+        const response = await fetch(`${API_SERVER_URL}/generate-upload-url?filename=${safeName}&fileType=${fileType}`);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to get URL');
+        }
+        const data = await response.json();
+
+        // Step 2: Upload to S3
+        // setStatus("Uploading to S3...", "info");
+            setStatus("Processing image...", "info");
+        const uploadResponse = await fetch(data.upload_url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': fileType // Important for signature matching
+            },
+            body: selectedFile
+        });
+        
+        if (!uploadResponse.ok) throw new Error('Upload to S3 failed.');
+        
+        // setStatus("Processing image...", "success");
+            setStatus("Almost there...", "info");
+        // Step 3: Poll
+        const downloadUrl = await pollForDownload(selectedFile.name);
+
+        // --- SWAP TO DOWNLOAD BUTTON ---
+                // setStatus("Done! Download below.", "success");
+              setStatus("Done!", "success");        
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `processed_${selectedFile.name}`; 
+
+        // Clone button
+        const downloadButton = originalUploadButton.cloneNode(true);
+        downloadButton.textContent = "Download Result";
+        downloadButton.style.backgroundColor = "#28a745";
+        downloadButton.classList.add('shake-animation');
+        
+        downloadButton.addEventListener('click', () => {
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        if (mainContainer.contains(currentButton)) {
+            mainContainer.replaceChild(downloadButton, currentButton);
+            currentButton = downloadButton;
+        }
+
+    } catch (error) {
+        console.error("Full Process Error:", error);
+        setStatus(`Error: ${error.message}`, "error");
+    }
+});
+    </script>
+</body>
+</html>
